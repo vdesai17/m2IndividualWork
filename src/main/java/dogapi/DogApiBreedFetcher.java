@@ -17,43 +17,29 @@ import java.util.*;
 public class DogApiBreedFetcher implements BreedFetcher {
     private final OkHttpClient client = new OkHttpClient();
 
-    /**
-     * Fetch the list of sub breeds for the given breed from the dog.ceo API.
-     * @param breed the breed to fetch sub breeds for
-     * @return list of sub breeds for the given breed
-     * @throws BreedNotFoundException if the breed does not exist (or if the API call fails for any reason)
-     */
     @Override
-    public List<String> getSubBreeds(String breed) throws BreedNotFoundException {
-
+    public List<String> getSubBreeds(String breed) {
         String url = String.format("https://dog.ceo/api/breed/%s/list", breed);
-
-        Request request = new Request.Builder()
-                .url(url)
-                .build();
+        Request request = new Request.Builder().url(url).build();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
-                throw new BreedNotFoundException("Failed to fetch sub-breeds for: " + breed);
+                throw new BreedNotFoundException(breed);
             }
 
             JSONObject json = new JSONObject(response.body().string());
-            String status = json.getString("status");
-
-            if (status.equals("error")) {
-                throw new BreedNotFoundException("Breed not found: " + breed);
+            if ("error".equals(json.getString("status"))) {
+                throw new BreedNotFoundException(breed);
             }
 
-            JSONArray subBreedsArray = json.getJSONArray("message");
+            JSONArray arr = json.getJSONArray("message");
             List<String> subBreeds = new ArrayList<>();
-            for (int i = 0; i < subBreedsArray.length(); i++) {
-                subBreeds.add(subBreedsArray.getString(i));
+            for (int i = 0; i < arr.length(); i++) {
+                subBreeds.add(arr.getString(i));
             }
-
             return subBreeds;
-
         } catch (IOException e) {
-            throw new BreedNotFoundException("API call failed for breed: " + breed);
+            throw new BreedNotFoundException(breed);
         }
     }
 }
